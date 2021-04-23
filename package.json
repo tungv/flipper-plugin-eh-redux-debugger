@@ -20,22 +20,27 @@
     "test": "jest --no-watchman"
   },
   "peerDependencies": {
+    "antd": "latest",
     "flipper": "latest",
-    "flipper-plugin": "latest",
-    "antd": "latest"
+    "flipper-plugin": "latest"
   },
   "devDependencies": {
     "@babel/preset-react": "latest",
     "@babel/preset-typescript": "latest",
     "@testing-library/react": "latest",
     "@types/jest": "latest",
+    "@types/lodash": "^4.14.168",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "antd": "latest",
     "flipper": "latest",
-    "flipper-plugin": "latest",
     "flipper-pkg": "latest",
+    "flipper-plugin": "latest",
     "jest": "latest",
     "typescript": "latest"
+  },
+  "dependencies": {
+    "brn": "^1.0.3",
+    "lodash": "^4.17.21"
   }
 }

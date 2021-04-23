@@ -1,7 +1,8 @@
-import React from "react";
-import { PluginClient, usePlugin, createState, useValue, Layout, DetailSidebar } from "flipper-plugin";
-import { SearchableTable, Button, Text, ManagedDataInspector, FlexColumn } from "flipper";
-import { Radio, Tabs } from "antd";
+import React, { CSSProperties } from "react";
+import { PluginClient, usePlugin, createState, useValue, Layout, DetailSidebar, theme } from "flipper-plugin";
+import { SearchableTable, Button, Text, ManagedDataInspector, FlexColumn, Input } from "flipper";
+import { Radio, Tabs, Breadcrumb } from "antd";
+import { goTo, filterBy, getFirstKey } from "./helpers";
 
 type Id = string;
 
@@ -44,18 +45,17 @@ const apiCallActions = [
   "@@api/DISPOSE",
 ];
 
-export function plugin(client: PluginClient<Events, {}>) {
+const plugin = (client: PluginClient<Events, {}>) => {
   const dataState = createState<DataState>(emptyDataState, { persist: "dataState" });
   const selectedId = createState<Id | null>(null, { persist: "selectedId" });
 
   client.onMessage("actionDispatched", (newData) => {
     newData.displayedStartTime = new Date(newData.startTime).toLocaleTimeString();
     newData.displayedTookTime = `${newData.took} ms`;
+    newData.displayedActionType = newData.action.type;
 
     if (apiCallActions.includes(newData.action.type)) {
       newData.displayedActionType = `${newData.action.type} (${newData.action.payload.name})`;
-    } else {
-      newData.displayedActionType = newData.action.type;
     }
 
     dataState.update((draft) => {
@@ -74,27 +74,9 @@ export function plugin(client: PluginClient<Events, {}>) {
   }
 
   return { dataState, selectedId, clear, setSelectedId };
-}
-
-const columns = {
-  startTime: {
-    value: "Time",
-  },
-  actionType: {
-    value: "Action",
-  },
-  took: {
-    value: "Took",
-  },
 };
 
-const columnSizes = {
-  startTime: "15%",
-  actionType: "70%",
-  took: "15%",
-};
-
-export function Component() {
+const Component = () => {
   const instance = usePlugin(plugin);
   const dataState = useValue(instance.dataState);
   const selectedId = useValue(instance.selectedId);
@@ -138,15 +120,19 @@ export function Component() {
       <DetailSidebar width={420}>{selectedId && <Detail data={dataState.byIds[selectedId]} />}</DetailSidebar>
     </>
   );
-}
+};
 
-function Detail({ data }: { data: Data }) {
+const Detail = ({ data }: { data: Data }) => {
   const [activeTab, setActiveTab] = React.useState<string>("action");
+
+  const handleTabChange = (e: any) => {
+    setActiveTab(e.target.value);
+  };
 
   return (
     <FlexColumn grow={true} scrollable={false} style={{ position: "absolute" }}>
       <Layout.Container pad="small" center={true}>
-        <Radio.Group onChange={(e) => setActiveTab(e.target.value)} value={activeTab}>
+        <Radio.Group value={activeTab} onChange={handleTabChange}>
           <Radio.Button value="action">Action</Radio.Button>
           <Radio.Button value="state">State</Radio.Button>
           <Radio.Button value="diff">Diff</Radio.Button>
@@ -154,13 +140,13 @@ function Detail({ data }: { data: Data }) {
       </Layout.Container>
 
       <div style={{ overflow: "auto" }}>
-        <Layout.Container pad="small" borderTop>
-          <Tabs activeKey={activeTab} renderTabBar={() => <></>}>
+        <Layout.Container pad="small">
+          <Tabs activeKey={activeTab} renderTabBar={Empty}>
             <Tabs.TabPane key="action">
-              <ManagedDataInspector data={data.action} collapsed={true} expandRoot={true} />
+              <ActionTab action={data.action} />
             </Tabs.TabPane>
             <Tabs.TabPane key="state">
-              <ManagedDataInspector data={data.stateAfter} collapsed={true} expandRoot={true} />
+              <StateTab state={data.stateAfter} />
             </Tabs.TabPane>
             <Tabs.TabPane key="diff">Coming soon!</Tabs.TabPane>
           </Tabs>
@@ -168,4 +154,91 @@ function Detail({ data }: { data: Data }) {
       </div>
     </FlexColumn>
   );
-}
+};
+
+const Empty = () => <></>;
+
+const ActionTab = ({ action }: { action: Action }) => {
+  return <ManagedDataInspector data={action} collapsed={true} expandRoot={true} />;
+};
+
+const StateTab = ({ state }: { state: object }) => {
+  const [statePath, setStatePath] = React.useState<Array<string>>([]);
+  const [stateKey, setStateKey] = React.useState<string>("");
+
+  const filteredState = filterBy(stateKey)(goTo(statePath)(state));
+
+  const handleChange = (e: any) => {
+    setStateKey(e.target.value);
+  };
+
+  const handleSearch = (e: any) => {
+    e.preventDefault();
+
+    const stateKey = getFirstKey(filteredState);
+
+    if (stateKey) {
+      setStateKey("");
+      setStatePath(statePath.concat([stateKey]));
+    }
+  };
+
+  const handleClick = (pathIndex: number) => {
+    setStateKey("");
+    setStatePath(statePath.slice(0, pathIndex));
+  };
+
+  return (
+    <>
+      <form onSubmit={handleSearch}>
+        <Input placeholder="Search state" value={stateKey} onChange={handleChange} style={styles.searchInput} />
+      </form>
+
+      <Breadcrumb separator=">" style={styles.breadcrumb}>
+        <Breadcrumb.Item href="#" onClick={() => handleClick(0)}>
+          root
+        </Breadcrumb.Item>
+        {statePath.map((path, i) => (
+          <Breadcrumb.Item key={i + 1} href="#" onClick={() => handleClick(i + 1)}>
+            {path}
+          </Breadcrumb.Item>
+        ))}
+      </Breadcrumb>
+
+      <ManagedDataInspector data={filteredState} collapsed={true} expandRoot={true} />
+    </>
+  );
+};
+
+const columns = {
+  startTime: {
+    value: "Time",
+  },
+  actionType: {
+    value: "Action",
+  },
+  took: {
+    value: "Took",
+  },
+};
+
+const columnSizes = {
+  startTime: "15%",
+  actionType: "70%",
+  took: "15%",
+};
+
+const styles: Record<string, CSSProperties> = {
+  searchInput: {
+    width: "100%",
+    marginBottom: theme.space.small,
+  },
+  breadcrumb: {
+    display: "flex",
+    flexWrap: "wrap",
+    marginBottom: theme.space.medium,
+    fontSize: theme.fontSize.small,
+  },
+};
+
+export { plugin, Component };

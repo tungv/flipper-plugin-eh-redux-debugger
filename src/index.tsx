@@ -13,6 +13,7 @@ interface Action {
 
 interface Data {
   readonly id: Id;
+  readonly prevId: Id;
   readonly action: Action;
   readonly stateAfter: object;
   readonly startTime: number;
@@ -148,7 +149,9 @@ const Detail = ({ data }: { data: Data }) => {
             <Tabs.TabPane key="state">
               <StateTab state={data.stateAfter} />
             </Tabs.TabPane>
-            <Tabs.TabPane key="diff">Coming soon!</Tabs.TabPane>
+            <Tabs.TabPane key="diff">
+              <DiffTab data={data} />
+            </Tabs.TabPane>
           </Tabs>
         </Layout.Container>
       </div>
@@ -157,6 +160,16 @@ const Detail = ({ data }: { data: Data }) => {
 };
 
 const Empty = () => <></>;
+
+const DiffTab = ({ data }: { data: Data }) => {
+  const instance = usePlugin(plugin);
+  const dataState = useValue(instance.dataState);
+
+  const stateAfter = data.stateAfter;
+  const stateBefore = dataState.byIds[data.prevId] ? dataState.byIds[data.prevId].stateAfter : {};
+
+  return <ManagedDataInspector diff={stateBefore} data={stateAfter} collapsed={true} expandRoot={true} />;
+};
 
 const ActionTab = ({ action }: { action: Action }) => {
   return <ManagedDataInspector data={action} collapsed={true} expandRoot={true} />;

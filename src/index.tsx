@@ -168,7 +168,7 @@ const DiffTab = ({ data }: { data: Data }) => {
   const stateAfter = data.stateAfter;
   const stateBefore = dataState.byIds[data.prevId] ? dataState.byIds[data.prevId].stateAfter : {};
 
-  return <ManagedDataInspector diff={stateBefore} data={stateAfter} collapsed={true} expandRoot={true} />;
+  return <ManagedDataInspector diff={stateBefore} data={stateAfter} collapsed={true} expandRoot={false} />;
 };
 
 const ActionTab = ({ action }: { action: Action }) => {

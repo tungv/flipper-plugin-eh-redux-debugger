@@ -1,7 +1,7 @@
 {
   "$schema": "https://fbflipper.com/schemas/plugin-package/v2.json",
-  "name": "flipper-plugin-redux-debugger",
-  "id": "redux-debugger",
+  "name": "flipper-plugin-eh-redux-debugger",
+  "id": "eh-redux-debugger",
   "version": "1.0.0",
   "pluginType": "client",
   "main": "dist/bundle.js",
@@ -11,7 +11,7 @@
     "flipper-plugin"
   ],
   "icon": "apps",
-  "title": "Redux Debugger",
+  "title": "EH Redux Debugger",
   "scripts": {
     "lint": "flipper-pkg lint",
     "prepack": "flipper-pkg lint && flipper-pkg bundle",
